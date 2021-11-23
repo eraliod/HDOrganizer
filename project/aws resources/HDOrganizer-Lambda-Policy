@@ -1,0 +1,39 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "s3Access",
+            "Effect": "Allow",
+            "Action": [
+                "s3:GetObject",
+                "s3:PutObject"
+            ],
+            "Resource": [
+                "arn:aws:s3:::hdorganizer-import/*",
+                "arn:aws:s3:::hdorganizer-export/*"
+            ]
+        },
+        {
+            "Sid": "Logging",
+            "Effect": "Allow",
+            "Action": [
+                "logs:CreateLogStream",
+                "logs:PutLogEvents",
+                "logs:CreateLogGroup"
+            ],
+            "Resource": "arn:aws:logs:us-east-2:361744900418:log-group:*:*"
+        },
+        {
+            "Sid": "MediaRole",
+            "Effect": "Allow",
+            "Action": "iam:Passrole",
+            "Resource": "arn:aws:iam::361744900418:role/HDOrganizer-MediaConvert-Role"
+        },
+        {
+            "Sid": "MediaConvert",
+            "Effect": "Allow",
+            "Action": "mediaconvert:*",
+            "Resource": "*"
+        }
+    ]
+}

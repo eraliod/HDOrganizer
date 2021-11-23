@@ -1,0 +1,29 @@
+S3
+  - Create bucket
+  - Event notification on /export to SQS
+
+CLOUDWATCH # APPEARS TO NOT BE POSSIBLE TO SPECIFY A LOG GROUP
+  - Create Log group
+
+IAM
+  - Permission to read and write into import S3
+  - Import User for external watchfolder
+  - Keys for API calls from this role
+  
+  - Permission to read from S3 Import folder and write to S3 Export folder, API calls
+  - Execution Role for MediaConvert
+
+  - Permission to
+    read from S3 Import
+    write to S3 Export
+    pass Mediaconvert Role
+    create log group, stream, event
+    call Mediaconvert
+  - Execution Role for Lambda
+
+LAMBDA
+  - Set up lambda function to push new S3 import objects to Mediaconvert
+  - Set up environment variables
+
+SQS
+  - Create export queue for compelted jobs
