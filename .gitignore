@@ -1,0 +1,7 @@
+venv
+venv/
+.DS_Store
+*.csv
+.env
+__*
+temp*
