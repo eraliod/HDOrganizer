@@ -6,12 +6,26 @@ TODO
     - TEST AWS API LOCALLY
     - TEST UPLOAD, DOWNLOAD, DELETE
 3 - CREATE DOCKER CONTAINERS
+    - SET UP INOTIFY ON A CONTAINER
+        inotifywait -mq -r -e create -e modify -e delete -e move /data/hd_videos
+        
+    - SET UP INOTIFY ON A FOLDER AND CHECK ITS OUTPUT
+        inotify is NOT working on MacOS. Should work on linux. Finding options
+
     - STAND UP A DOCKER CONTAINER WITH AWS CREDENTIALS (SECRET)
+
+        docker run -v $HOME/.aws/credentials:/home/app/.aws/credentials:ro your_image
+    
+        version: '3'
+        services:
+          app:
+            image: your_image
+            volumes:
+            - $HOME/.aws/credentials:/home/app/.aws/credentials:ro
+
     - TEST AWS API ON DOCKER CONTAINER
     - CREATE DOCKER CONTAINER WITH HARD CODED SCRIPTS AND TEST
-    - SET UP INOTIFY ON A CONTAINER
-    - SET UP INOTIFY ON A FOLDER AND CHECK ITS OUTPUT
     - RE-WORK THE PYTON SCRIPTS TO USE INOTIFY OUTPUT
     - TEST IT ALL TOGETHER IN SEPARATE CONTAINERS
-    - WORK ON JOINING INTO A SINGLE CONTAINER (S6-OVERLAY)
+    - WORK ON JOINING INTO A SINGLE CONTAINER 
 4 - WORK ON CLOUDFORMATION
