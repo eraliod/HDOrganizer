@@ -5,12 +5,10 @@ TODO
     - SET UP AWS ENVIRONMENT CREDENTIALS
     - TEST AWS API LOCALLY
     - TEST UPLOAD, DOWNLOAD, DELETE
+    - TEST SCRIPTS TO CHECK FOR FILES, PROCESS MP4, MOVE ON SUCCESS, DELETE EMPTY DIRECTORIES
 3 - CREATE DOCKER CONTAINERS
-    - SET UP INOTIFY ON A CONTAINER
-        inotifywait -mq -r -e create -e modify -e delete -e move /data/hd_videos
-        
-    - SET UP INOTIFY ON A FOLDER AND CHECK ITS OUTPUT
-        inotify is NOT working on MacOS. Should work on linux. Finding options
+    - TEST DOCKER CONTAINER WITH CRON FILE PROCESSING
+        - container must watch folder, detect new items, process video files, move everything, delete empty folders
 
     - STAND UP A DOCKER CONTAINER WITH AWS CREDENTIALS (SECRET)
 
