@@ -8,10 +8,11 @@
 #   See here: https://serverfault.com/questions/237710/dont-run-cron-job-if-already-running
 
 
-from logging import error
+# from logging import error
 import os
 import boto3
 import json
+import logging
 
 from botocore.exceptions import ClientError
 
@@ -22,6 +23,9 @@ from botocore.exceptions import ClientError
 profile_name = 'hdo-dev'
 region_name = 'us-east-2'
 sqs_queue_url = 'https://sqs.us-east-2.amazonaws.com/361744900418/HDOrganizer-download-queue'
+
+transcode_load_folder = 'project/temp/downloads/'
+bucket = 'hdorganizer'
 
 def hdo_get_sqs_message():
 
@@ -42,37 +46,23 @@ def hdo_get_sqs_message():
         ]
         ,VisibilityTimeout = 30 #declaring here will override the "default" (set in the queue)
     )
-    print('this is the response:')
-    print(response)
+
     if 'Messages' in response:
-        # print('-------message---------')
         message = response['Messages'][0]
-        # # message = response.get("Messages",[])
-        # print(message)
-        # print('-------receipt handle---------')
         receipt_handle = message['ReceiptHandle']
-        # print(receipt_handle)
-        # print('-------body---------')
         message_body = json.loads(message['Body'])
-        # print(message_body)
-        # print('-------oritinal_input_key---------')
         original_input_key = message_body['Records'][0]['s3']['object']['key']
-        # print(original_input_key)
-        print('-------input_key---------')
         input_key = original_input_key.replace('+',' ')  # S3 event replacing spaces with + 
-        print(input_key)
-        print('--------receipt_handle--------')
-        print(receipt_handle)
+        logging.info('-------input_key---------')
+        logging.info(input_key)
+        logging.info('--------receipt_handle--------')
+        logging.info(receipt_handle)
 
         return receipt_handle, input_key
         
     else:
-        print('SQS has no messages')
+        logging.warning('SQS has no messages... Terminating')
         raise ValueError('SQS has no messages')
-
-    
-transcode_load_folder = 'project/temp/downloads/'
-bucket = 'hdorganizer'
 
 def hdo_download_file(key):
 
@@ -88,7 +78,7 @@ def hdo_download_file(key):
     # s3.Bucket('hdorganizer').download_file('export/Cat - 66004.mp4','123.mp4')
     #download file
     s3.Bucket(bucket).download_file(s3_file_path, file_path)
-    print(f'{key} downloaded successfully')
+    logging.info(f'{key} downloaded successfully from S3')
 
 
 def hdo_delete_file(key):
@@ -102,7 +92,7 @@ def hdo_delete_file(key):
     s3_file_path = key
     
     s3.Object(bucket,s3_file_path).delete()
-    print(f'{key} deleted successfully')
+    logging.info(f'{key} deleted successfully from S3')
 
 
 def hdo_delete_sqs_message(receipt_handle):
@@ -115,34 +105,38 @@ def hdo_delete_sqs_message(receipt_handle):
         QueueUrl = sqs_queue_url,
         ReceiptHandle = receipt_handle
     )
-    print('Received and deleted message')
+    logging.info('Received and deleted SQS message')
 
+def main():
+    logging.basicConfig(
+        # filename='check_empty.log',
+        encoding='utf-8',
+        format='%(asctime)s %(levelname)-8s %(message)s',
+        level=logging.INFO,
+        datefmt='%Y-%m-%d %H:%M:%S')
 
-print('----- BEGIN PROCESS -----')
+    logging.info('----- BEGIN PROCESS -----')
 
-while True:  
-    print('----- poll SQS -----')
-    try:
-        sqs_message_details = hdo_get_sqs_message()
-    except:
-        exit()
+    while True:  
+        logging.info('Poll Amazon SQS')
+        try:
+            sqs_message_details = hdo_get_sqs_message()
+        except:
+            logging.info('----- END PROCESS -----')
+            exit()
 
-    print('----- returned values -----')
-    receipt_handle = sqs_message_details[0]
-    print(receipt_handle)
-    input_key = sqs_message_details[1]
-    print(input_key)
+        receipt_handle = sqs_message_details[0]
+        input_key = sqs_message_details[1]
 
-    print('----- attempt download + delete -----')
-    try:
-        hdo_download_file(input_key)
-        print('----- file download complete -----')
-        hdo_delete_sqs_message(receipt_handle)
-        print('----- SQS message deleted -----')
-        hdo_delete_file(input_key)
-        print('----- file delete complete -----')
-    except Exception as e:
-        print(f'{input_key} did not download, sqs message retained and will return to the queue after visibility timeout')
-        print(e)
-        break
-next
+        try:
+            hdo_download_file(input_key)
+            hdo_delete_sqs_message(receipt_handle)
+            hdo_delete_file(input_key)
+        except Exception as e:
+            logging.warning(f'{input_key} did not download, sqs message retained and will return to the queue after visibility timeout')
+            logging.error(e)
+            break
+    next
+
+if __name__ == '__main__':
+    main()

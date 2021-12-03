@@ -3,7 +3,7 @@
 # this script is used to upload video files to S3
 import os
 import boto3
-import json
+import logging
 
 from botocore.exceptions import ClientError
 
@@ -25,16 +25,17 @@ def hdo_import_file(file_name, file_path, bucket):
     #Setting up the client to check file exists
     try:
         s3.Object(bucket, s3_file_path).load()
-        print(f'{file_name} already exists')
+        logging.warning(f'{file_name} already exists')
     except ClientError:
         s3.Bucket(bucket).upload_file(file_path, s3_file_path)
-        print(f'{file_name} uploaded successfully')
+        logging.info(f'{file_name} uploaded successfully')
 
     return
 
+if __name__ == '__main__':
+    for file in os.listdir('project/temp/hd_videos/'):
+        file_path = f'project/temp/hd_videos/{file}'
+        bucket = 'hdorganizer'
 
-for file in os.listdir('project/temp/hd_videos/'):
-    file_path = f'project/temp/hd_videos/{file}'
-    bucket = 'hdorganizer'
+        hdo_import_file(file, file_path, bucket)
 
-    hdo_import_file(file, file_path, bucket)
