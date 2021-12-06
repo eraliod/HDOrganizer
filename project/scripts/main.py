@@ -3,7 +3,10 @@
 import os
 import shutil
 import logging
+import time
 from hdo_import import hdo_import_file
+
+# profile_name = 'hdo-dev'
 
 src = 'project/temp/downloads'
 dest = 'project/temp/hd_videos'
@@ -39,10 +42,13 @@ def process4kfiles(src, dest):
                 try:
                     logging.info(f'Uploading to S3: {f.removeprefix(src)}')
                     hdo_import_file(name, root, bucket)
-                except:
+                except Exception as ex:
+                    print(name + ' ' + root + ' ' + bucket)
+                    print(ex)
                     logging.warning(f'There was an error sending the file to S3, skipping {f}')
                     continue #continue will push to the next file in the loop
-            
+            time.sleep(1)
+
             # Check if the destination directory exists
             dir_dest = dest + os.sep + root.lstrip(src)
             if not os.path.exists(dir_dest):
@@ -72,6 +78,27 @@ def process4kfiles(src, dest):
         else:
             logging.warning('contents in directory: ' + ' ,'.join(os.listdir(root)))
 
+def lock_file_exists(filename):
+    if os.path.exists(filename):
+        logging.warning('lock file exists, indicating script is alredy running')
+        return True
+    else:
+        logging.info('lock file does not exit, proceeding...') 
+        return False
+
+def make_lock_file(filename, infotext):
+    f = open(filename,'w')
+    f.write(infotext)
+    f.close()
+    logging.info('created lock file: python_running_lock.txt')
+
+def release_lock_file(filename):
+    try:
+        os.remove(filename)
+    except Exception as ex:
+        logging.error(ex)
+    logging.info(f'removed lock file: {filename}')
+
 def main():
     logging.basicConfig(
         # filename='check_empty.log',
@@ -79,11 +106,20 @@ def main():
         format='%(asctime)s %(levelname)-8s %(message)s',
         level=logging.INFO,
         datefmt='%Y-%m-%d %H:%M:%S')
+    logging.getLogger('boto').setLevel(logging.CRITICAL)
 
     logging.info('----- BEGIN PROCESS -----')
-    if not empty_check(src):
-        process4kfiles(src, dest)
-    logging.info('----- END PROCESS -----')
+    if not lock_file_exists('python_running.lock'):
+        make_lock_file('python_running.lock','Running HDOrganizer uploads to S3')
+        if not empty_check(src):
+            try:
+                process4kfiles(src, dest)
+            except Exception as ex:
+                logging.Error(ex)
+        release_lock_file('python_running.lock')
+        logging.info('----- END PROCESS -----')
+    else:
+        logging.info('----- END PROCESS -----')
 
 if __name__ == '__main__':
     main()
