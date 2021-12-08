@@ -50,12 +50,12 @@ def process4kfiles(src, dest):
             time.sleep(1)
 
             # Check if the destination directory exists
-            dir_dest = dest + os.sep + root.lstrip(src)
+            dir_dest = dest + os.sep + root.removeprefix(src)
             if not os.path.exists(dir_dest):
                 os.makedirs(dir_dest)
             
             # Set the destination path for this file
-            f_dest = dest + os.sep + f.lstrip(src)
+            f_dest = dest + os.sep + f.removeprefix(src)
             
             # Move the file to its new location
             logging.info(f'Moving {f.removeprefix(src)}')

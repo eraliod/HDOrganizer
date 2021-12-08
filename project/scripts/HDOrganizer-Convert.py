@@ -9,6 +9,9 @@ import logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+#Set aws calls back to WARNING to avoid verbose messages
+logging.getLogger('botocore').setLevel(logging.CRITICAL) 
+
 def lambda_handler(event, context):
     '''
     HDOrganizer-Convert function pushes any video files saved in the 
