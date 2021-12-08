@@ -1,9 +1,12 @@
 #!python
 
+# This script is used to upload files from the watch directory to S3
+
 import os
 import shutil
 import logging
 import time
+from lock import lock_file_exists, make_lock_file, release_lock_file
 from hdo_import import hdo_import_file
 
 # profile_name = 'hdo-dev'
@@ -78,34 +81,14 @@ def process4kfiles(src, dest):
         else:
             logging.warning('contents in directory: ' + ' ,'.join(os.listdir(root)))
 
-def lock_file_exists(filename):
-    if os.path.exists(filename):
-        logging.warning('lock file exists, indicating script is alredy running')
-        return True
-    else:
-        logging.info('lock file does not exit, proceeding...') 
-        return False
-
-def make_lock_file(filename, infotext):
-    f = open(filename,'w')
-    f.write(infotext)
-    f.close()
-    logging.info('created lock file: python_running_lock.txt')
-
-def release_lock_file(filename):
-    try:
-        os.remove(filename)
-    except Exception as ex:
-        logging.error(ex)
-    logging.info(f'removed lock file: {filename}')
-
 def main():
     logging.basicConfig(
-        # filename='check_empty.log',
+        # filename='hdo_upload.log',
         encoding='utf-8',
         format='%(asctime)s %(levelname)-8s %(message)s',
         level=logging.INFO,
         datefmt='%Y-%m-%d %H:%M:%S')
+        
     #Set aws calls back to WARNING to avoid verbose messages
     logging.getLogger('botocore').setLevel(logging.WARNING) 
 

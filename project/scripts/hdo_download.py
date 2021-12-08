@@ -2,18 +2,11 @@
 
 # This script is used to download completed (converted) video files back to the source machine
 
-
-# Local docker has to run this via cron only if not already running. One way to do this is to
-#   run a bash script via cron that runs the py script only if a lock file is not present.
-#   See here: https://serverfault.com/questions/237710/dont-run-cron-job-if-already-running
-
-
-# from logging import error
 import os
 import boto3
 import json
 import logging
-
+from lock import lock_file_exists, make_lock_file, release_lock_file
 from botocore.exceptions import ClientError
 
 # profile_name = os.environ('profile_name')
@@ -44,25 +37,30 @@ def hdo_get_sqs_message():
         MessageAttributeNames = [
             'All'
         ]
-        ,VisibilityTimeout = 30 #declaring here will override the "default" (set in the queue)
+        ,VisibilityTimeout = 60 #declaring here will override the "default" (set in the queue)
     )
 
     if 'Messages' in response:
-        body = response['Messages'][0]['Body']
-        message = json.loads(body)['Message']
-        original_input_key = json.loads(message)['Records'][0]['s3']['object']['key']
-        input_key = original_input_key.replace('+',' ')  # S3 event replacing spaces with + 
-        logging.info('-------input_key---------')
-        logging.info(input_key)
         receipt_handle = response['Messages'][0]['ReceiptHandle']
         logging.info('--------receipt_handle--------')
         logging.info(receipt_handle)
 
+        body = response['Messages'][0]['Body']
+        message = json.loads(body)['Message']
+        if 'Records' in json.loads(message):
+            original_input_key = json.loads(message)['Records'][0]['s3']['object']['key']
+            logging.info(original_input_key)
+            input_key = original_input_key.replace('+',' ')  # S3 event replacing spaces with + 
+            logging.info('-------input_key---------')
+            logging.info(input_key)
+        else:
+            logging.info('there are no Records in this SQS message. Skip')
+            input_key = None
+
         return receipt_handle, input_key
         
     else:
-        logging.warning('SQS has no messages... Terminating')
-        raise ValueError('SQS has no messages')
+        raise ValueError('SQS has no messages... Terminating')
 
 def hdo_download_file(key):
 
@@ -109,7 +107,7 @@ def hdo_delete_sqs_message(receipt_handle):
 
 def main():
     logging.basicConfig(
-        # filename='check_empty.log',
+        # filename='hdo_download.log',
         encoding='utf-8',
         format='%(asctime)s %(levelname)-8s %(message)s',
         level=logging.INFO,
@@ -119,28 +117,37 @@ def main():
     logging.getLogger('botocore').setLevel(logging.WARNING) 
 
     logging.info('----- BEGIN PROCESS -----')
+    if not lock_file_exists('python_running.lock'):
+        make_lock_file('python_running.lock','Running HDOrganizer downloads')
+        while True:  
+            logging.info('Poll Amazon SQS')
+            try:
+                sqs_message_details = hdo_get_sqs_message()
+            except Exception as ex:
+                logging.error(ex)
+                break
+                # logging.info('----- END PROCESS -----')
+                # exit()
 
-    while True:  
-        logging.info('Poll Amazon SQS')
-        try:
-            sqs_message_details = hdo_get_sqs_message()
-        except Exception as ex:
-            logging.error(ex)
-            logging.info('----- END PROCESS -----')
-            exit()
+            receipt_handle = sqs_message_details[0]
+            input_key = sqs_message_details[1]
 
-        receipt_handle = sqs_message_details[0]
-        input_key = sqs_message_details[1]
-
-        try:
-            hdo_download_file(input_key)
-            hdo_delete_sqs_message(receipt_handle)
-            hdo_delete_file(input_key)
-        except Exception as e:
-            logging.warning(f'{input_key} did not download, sqs message retained and will return to the queue after visibility timeout')
-            logging.error(e)
-            break
-    next
+            if input_key:
+                try:
+                    hdo_download_file(input_key)
+                    hdo_delete_sqs_message(receipt_handle)
+                    hdo_delete_file(input_key)
+                except Exception as e:
+                    logging.warning(f'{input_key} did not download, sqs message retained and will return to the queue after visibility timeout')
+                    logging.error(e)
+                    continue
+            else:
+                continue
+        
+        release_lock_file('python_running.lock')  
+        logging.info('----- END PROCESS -----')
+    else:
+        logging.info('----- END PROCESS -----')              
 
 if __name__ == '__main__':
     main()

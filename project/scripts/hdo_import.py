@@ -8,7 +8,6 @@ import logging
 from botocore.exceptions import ClientError
 
 # profile_name = os.environ('profile_name')
-
 profile_name = 'hdo-dev'
 
 def hdo_import_file(file_name, file_path, bucket):

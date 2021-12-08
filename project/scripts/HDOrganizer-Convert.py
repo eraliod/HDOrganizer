@@ -37,7 +37,7 @@ def lambda_handler(event, context):
     logger.info(input_bucket)
     input = 's3://'+input_bucket+'/'+input_key
     logger.info(input)
-    destination = destination_bucket+input_key
+    destination = destination_bucket+input_key.removeprefix('import/')
     logger.info(destination)
 
     # create job parameters
