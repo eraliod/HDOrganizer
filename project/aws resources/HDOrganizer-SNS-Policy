@@ -1,0 +1,28 @@
+{
+    "Version": "2008-10-17",
+    "Statement": [
+      {
+        "Sid": "Publish-01",
+        "Effect": "Allow",
+        "Principal": {
+          "Service": "s3.amazonaws.com"
+        },
+        "Action": "SNS:Publish",
+        "Resource": "arn:aws:sns:us-east-2:361744900418:HDOrganizer-processed-topic",
+        "Condition": {
+          "StringEquals": {
+            "AWS:SourceAccount": "361744900418"
+          }
+        }
+      },
+      {
+        "Sid": "Subscribe-01",
+        "Effect": "Allow",
+        "Principal": {
+          "AWS": "arn:aws:iam::361744900418:root"
+        },
+        "Action": "SNS:Subscribe",
+        "Resource": "arn:aws:sns:us-east-2:361744900418:HDOrganizer-processed-topic"
+      }
+    ]
+  }

@@ -25,5 +25,14 @@ LAMBDA
   - Set up lambda function to push new S3 import objects to Mediaconvert
   - Set up environment variables
 
+  - Set up lambda funciton to delete the original source videos once they are transcoded
+  - Set up environment variables
+  - Trigger via SNS topic
+
 SQS
   - Create export queue for compelted jobs
+
+SNS
+  - Create a topic that lists new items after they are transcoded.
+    Lambda will subscribe to this topic to delete the original (larger) source file
+    SQS will subscribe to this topic to provide a listing of transcoded videos ready for download

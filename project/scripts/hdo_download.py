@@ -48,13 +48,13 @@ def hdo_get_sqs_message():
     )
 
     if 'Messages' in response:
-        message = response['Messages'][0]
-        receipt_handle = message['ReceiptHandle']
-        message_body = json.loads(message['Body'])
-        original_input_key = message_body['Records'][0]['s3']['object']['key']
+        body = response['Messages'][0]['Body']
+        message = json.loads(body)['Message']
+        original_input_key = json.loads(message)['Records'][0]['s3']['object']['key']
         input_key = original_input_key.replace('+',' ')  # S3 event replacing spaces with + 
         logging.info('-------input_key---------')
         logging.info(input_key)
+        receipt_handle = response['Messages'][0]['ReceiptHandle']
         logging.info('--------receipt_handle--------')
         logging.info(receipt_handle)
 
@@ -115,15 +115,17 @@ def main():
         level=logging.INFO,
         datefmt='%Y-%m-%d %H:%M:%S')
 
-    logging.getLogger('boto').setLevel(logging.CRITICAL)
-    
+    #Set aws calls back to WARNING to avoid verbose messages
+    logging.getLogger('botocore').setLevel(logging.WARNING) 
+
     logging.info('----- BEGIN PROCESS -----')
 
     while True:  
         logging.info('Poll Amazon SQS')
         try:
             sqs_message_details = hdo_get_sqs_message()
-        except:
+        except Exception as ex:
+            logging.error(ex)
             logging.info('----- END PROCESS -----')
             exit()
 

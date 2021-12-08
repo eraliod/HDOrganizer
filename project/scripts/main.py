@@ -106,7 +106,8 @@ def main():
         format='%(asctime)s %(levelname)-8s %(message)s',
         level=logging.INFO,
         datefmt='%Y-%m-%d %H:%M:%S')
-    logging.getLogger('boto').setLevel(logging.CRITICAL)
+    #Set aws calls back to WARNING to avoid verbose messages
+    logging.getLogger('botocore').setLevel(logging.WARNING) 
 
     logging.info('----- BEGIN PROCESS -----')
     if not lock_file_exists('python_running.lock'):
