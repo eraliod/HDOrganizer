@@ -1,0 +1,15 @@
+version: "3.6"
+
+services:
+  watch-upload:
+    container_name: watch-upload
+    image: watch_upload
+    volumes:
+      - $DOCKERDIR/apps/hdorganizer/data:/data 
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - TZ=$TZ
+    env_file:
+      - .env
+    restart: unless-stopped

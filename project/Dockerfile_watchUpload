@@ -1,14 +1,15 @@
-FROM python:3.10-buster
+FROM python:3.10-alpine
 # still testing different base images
 COPY /scripts/hdo_import.py /bin/hdo_import.py
-COPY requirements.txt /bin/requirements.txt
-COPY /scripts/main.sh /bin/main.sh
-RUN chmod +x /bin/hdo_import.py
-RUN chmod +x /bin/main.sh
+COPY /scripts/requirements.txt /bin/requirements.txt
+# COPY /scripts/main.sh /bin/main.sh
+# RUN chmod +x /bin/hdo_import.py
+# RUN chmod +x /bin/main.sh
 RUN pip install -r /bin/requirements.txt
-RUN apt-get update -y
-RUN apt-get install -y inotify-tools
+# RUN apt-get update -y
+# RUN apt-get install -y inotify-tools
 # CMD /bin/main.sh
 # RUN apk add -U tzdata 
 # CMD sleep 15s && python3 /bin/hdo_import.py
-# CMD ["sleep","5000"]
+CMD ["sleep","5000"]
+# CMD /bin/sh
