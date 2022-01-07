@@ -8,24 +8,18 @@ import json
 import logging
 from lock import lock_file_exists, make_lock_file, release_lock_file
 from botocore.exceptions import ClientError
+from dotenv import load_dotenv
 
-# profile_name = os.environ('profile_name')
-# region_name = os.environ('region_name')
-# sqs_queue_url = os.environ('sqs_queue_url')
+def hdo_get_sqs_message(sqs_queue_url,region_name):
 
-profile_name = 'hdo-dev'
-region_name = 'us-east-2'
-sqs_queue_url = 'https://sqs.us-east-2.amazonaws.com/361744900418/HDOrganizer-download-queue'
+    # Establish session using environment variables from config/env
+    AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 
-transcode_load_folder = 'project/temp/downloads/'
-bucket = 'hdorganizer'
-
-def hdo_get_sqs_message():
-
-    boto3.setup_default_session(profile_name=profile_name)
+    session = boto3.session.Session(aws_access_key_id=AWS_ACCESS_KEY_ID,aws_secret_access_key=AWS_SECRET_ACCESS_KEY,region_name=region_name)
 
     #Setting up the S3 bucket for upload
-    sqs = boto3.client('sqs', region_name=region_name)
+    sqs = session.client('sqs')
 
     # Receive message from SQS queue
     response = sqs.receive_message(
@@ -62,43 +56,54 @@ def hdo_get_sqs_message():
     else:
         raise ValueError('SQS has no messages... Terminating')
 
-def hdo_download_file(key):
+def hdo_download_file(key,bucket,transcode_load_folder):
 
-    boto3.setup_default_session(profile_name=profile_name)
+    # Establish session using environment variables from config/env
+    AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+
+    session = boto3.session.Session(aws_access_key_id=AWS_ACCESS_KEY_ID,aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
 
     #Setting up the S3 bucket for upload
-    s3 = boto3.resource('s3')
+    s3 = session.client('s3')
 
     #set the S3 object and local download destination
     s3_file_path = key
-    file_path = transcode_load_folder + key[7:]
+    file_path = transcode_load_folder + os.sep + key[7:]
 
-    # s3.Bucket('hdorganizer').download_file('export/Cat - 66004.mp4','123.mp4')
     #download file
-    s3.Bucket(bucket).download_file(s3_file_path, file_path)
+    s3.download_file(bucket, s3_file_path, file_path)
     logging.info(f'{key} downloaded successfully from S3')
 
 
-def hdo_delete_file(key):
+def hdo_delete_file(key,bucket):
 
-    boto3.setup_default_session(profile_name=profile_name)
+    # Establish session using environment variables from config/env
+    AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+    
+    session = boto3.session.Session(aws_access_key_id=AWS_ACCESS_KEY_ID,aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
 
     #Setting up the S3 bucket for upload
-    s3 = boto3.resource('s3')
+    s3 = session.client('s3')
 
     #set the S3 object and local download destination
     s3_file_path = key
     
-    s3.Object(bucket,s3_file_path).delete()
+    s3.delete_object(Bucket=bucket,Key=s3_file_path)
     logging.info(f'{key} deleted successfully from S3')
 
 
-def hdo_delete_sqs_message(receipt_handle):
+def hdo_delete_sqs_message(receipt_handle,sqs_queue_url,region_name):
 
-    boto3.setup_default_session(profile_name=profile_name)
+    # Establish session using environment variables from config/env
+    AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+
+    session = boto3.session.Session(aws_access_key_id=AWS_ACCESS_KEY_ID,aws_secret_access_key=AWS_SECRET_ACCESS_KEY,region_name=region_name)
 
     #Setting up the S3 bucket for upload
-    sqs = boto3.client('sqs', region_name=region_name)
+    sqs = session.client('sqs', region_name=region_name)
     sqs.delete_message(
         QueueUrl = sqs_queue_url,
         ReceiptHandle = receipt_handle
@@ -116,13 +121,20 @@ def main():
     #Set aws calls back to WARNING to avoid verbose messages
     logging.getLogger('botocore').setLevel(logging.WARNING) 
 
+    #Load environment variables
+    load_dotenv()
+    region_name = os.getenv('region_name')
+    sqs_queue_url = os.getenv('sqs_queue_url')
+    bucket = os.getenv('bucket')
+    transcode_load_folder = os.getenv('download')
+
     logging.info('----- BEGIN PROCESS -----')
     if not lock_file_exists('python_running.lock'):
         make_lock_file('python_running.lock','Running HDOrganizer downloads')
         while True:  
             logging.info('Poll Amazon SQS')
             try:
-                sqs_message_details = hdo_get_sqs_message()
+                sqs_message_details = hdo_get_sqs_message(sqs_queue_url,region_name)
             except Exception as ex:
                 logging.error(ex)
                 break
@@ -134,9 +146,9 @@ def main():
 
             if input_key:
                 try:
-                    hdo_download_file(input_key)
-                    hdo_delete_sqs_message(receipt_handle)
-                    hdo_delete_file(input_key)
+                    hdo_download_file(input_key,bucket,transcode_load_folder)
+                    hdo_delete_sqs_message(receipt_handle,sqs_queue_url,region_name)
+                    hdo_delete_file(input_key,bucket)
                 except Exception as e:
                     logging.warning(f'{input_key} did not download, sqs message retained and will return to the queue after visibility timeout')
                     logging.error(e)

@@ -1,9 +1,19 @@
 FROM python:3.10-alpine
 # still testing different base images
-COPY /scripts/hdo_import.py /bin/hdo_import.py
-COPY /scripts/requirements.txt /bin/requirements.txt
+COPY temp/temp.py /bin/temp.py
+COPY scripts/main.py /bin/main.py
+COPY scripts/hdo_import.py /bin/hdo_import.py
+COPY scripts/hdo_download.py /bin/hdo_download.py
+COPY scripts/rename_file.py /bin/rename_file.py
+COPY scripts/lock.py /bin/lock.py
+COPY scripts/requirements.txt /bin/requirements.txt
 # COPY /scripts/main.sh /bin/main.sh
-# RUN chmod +x /bin/hdo_import.py
+RUN chmod +x /bin/temp.py
+RUN chmod +x /bin/main.py
+RUN chmod +x /bin/hdo_import.py
+RUN chmod +x /bin/hdo_download.py
+RUN chmod +x /bin/rename_file.py
+RUN chmod +x /bin/lock.py
 # RUN chmod +x /bin/main.sh
 RUN pip install -r /bin/requirements.txt
 # RUN apt-get update -y
@@ -12,4 +22,3 @@ RUN pip install -r /bin/requirements.txt
 # RUN apk add -U tzdata 
 # CMD sleep 15s && python3 /bin/hdo_import.py
 CMD ["sleep","5000"]
-# CMD /bin/sh

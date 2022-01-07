@@ -6,10 +6,9 @@ services:
     image: watch_upload
     volumes:
       - $DOCKERDIR/apps/hdorganizer/data:/data 
+      - $DOCKERDIR/apps/hdorganizer/config:/config 
     security_opt:
       - no-new-privileges:true
-    environment:
-      - TZ=$TZ
     env_file:
-      - .env
+      - $DOCKERDIR/apps/hdorganizer/config/env
     restart: unless-stopped

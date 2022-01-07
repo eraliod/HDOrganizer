@@ -1,6 +1,9 @@
 #!python
 
-# This script is used to upload files from the watch directory to S3
+# This is the primary script for the HDOrganizer app
+# 1. Checks for a config file
+# 2. Renames files if needed
+# 3. Uploads to AWS
 
 import os
 import shutil
@@ -8,17 +11,7 @@ import logging
 import time
 from lock import lock_file_exists, make_lock_file, release_lock_file
 from hdo_import import hdo_import_file
-
-# profile_name = 'hdo-dev'
-
-src = 'project/temp/downloads'
-dest = 'project/temp/hd_videos'
-
-# Normalize source and destination pathc
-src = os.path.abspath(src)
-dest = os.path.abspath(dest)
-
-bucket = 'hdorganizer'
+from dotenv import load_dotenv
 
 def empty_check(src):    
     empty = False
@@ -31,7 +24,7 @@ def empty_check(src):
     
     return empty
 
-def process4kfiles(src, dest):
+def process4kfiles(src, dest, bucket):
     # Seek files in the source directory and process them individually
     for root, dirs, files in os.walk(src):
         for name in files:
@@ -92,12 +85,27 @@ def main():
     #Set aws calls back to WARNING to avoid verbose messages
     logging.getLogger('botocore').setLevel(logging.WARNING) 
 
+    #Load environment variables
+    load_dotenv()
+    src = os.getenv('src')
+    dest = os.getenv('dest')
+    bucket = os.getenv('bucket')
+
+    # # Override for testing
+    # src = 'project/temp/1_source'
+    # dest = 'project/temp/2_destination'
+    # bucket = 'hdorganizer'
+
+    # Normalize source and destination pathc
+    src = os.path.abspath(src)
+    dest = os.path.abspath(dest)
+
     logging.info('----- BEGIN PROCESS -----')
     if not lock_file_exists('python_running.lock'):
         make_lock_file('python_running.lock','Running HDOrganizer uploads to S3')
         if not empty_check(src):
             try:
-                process4kfiles(src, dest)
+                process4kfiles(src, dest, bucket)
             except Exception as ex:
                 logging.Error(ex)
         release_lock_file('python_running.lock')
@@ -107,6 +115,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-# TODO - remove empty directories
-# TODO - logging and errors
