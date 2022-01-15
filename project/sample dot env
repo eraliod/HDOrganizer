@@ -1,0 +1,22 @@
+# Rename this file to: .env
+# Host volume root - case sensitive in UNIX
+DOCKERDIR=/Users/name/Documents/docker
+
+# General and docker related variables
+PUID=1001
+PGID=1001
+TZ=America/New_York
+
+# AWS CREDENTIALS
+AWS_ACCESS_KEY_ID=ABC
+AWS_SECRET_ACCESS_KEY=A1a3
+
+# HDOrganizer specific AWS variables
+region_name = 'us-east-2'
+sqs_queue_url = 'https://sqs.us-east-2.amazonaws.com/url...'
+bucket = '[hdorganizer bucket name]'
+
+# Local Folder Setup
+src = 'project/temp/1_source'
+dest = 'project/temp/2_destination'
+download = 'project/temp/3_transcoded'
